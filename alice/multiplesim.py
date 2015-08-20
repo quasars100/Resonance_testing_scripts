@@ -12,27 +12,26 @@ def anglerange(val):
        val -= 2*np.pi
    return val*180/np.pi
 
-def simulate(args):
+def calc(args):
     taue=args
     taupo=taue
-    rebound.reset()
-    rebound.G = 4.*(np.pi)**2
-    rebound.integrator = 'whfast'
-    rebound.dt = 0.012
-    rebound.add(m=1.0)
-    rebound.add(m=1.e-8, a=1.0, e=0.0, anom = 0)
-    rebound.add(m=1.e-5, a=2.1**(2.0/3.0), e=0.0, anom = 0)
-    rebound.move_to_com()
+    sim = rebound.Simulation()
+    sim.force_is_velocity_dependent = 1
+    sim.G = 4.*(np.pi)**2
+    sim.integrator = 'whfast'
+    sim.dt = 0.012
+    sim.add(m=1.0)
+    sim.add(m=1.e-8, a=1.0, e=0.0, anom = 0)
+    sim.add(m=1.e-5, a=2.1**(2.0/3.0), e=0.0, anom = 0)
+    sim.move_to_com()
     tmax = 1.e7
     Npts = 1000
-    rebound.post_timestep_modifications = reboundxf.modify_elements()
-    tauas = [0., 1.e10, 1.e7]
-    taupo=[0.,taupo,0.]
-    reboundxf.set_e_damping_p(1.)
-    reboundxf.set_migration(tauas)
-    reboundxf.set_peri_precession(taupo)
-    taues = [0., taue, 0.]
-    reboundxf.set_e_damping(taues)
+    sim.post_timestep_modifications = reboundxf.modify_elements()
+    xf = reboundxf.Params(sim)
+    xf.e_damping_p =1.
+    xf.tau_a = [0., 0., 1.e7]
+    xf.tau_e = [0., taue, 0.]
+    xf.tau_pomega = [0., 0., 0.]
     e1 = np.zeros(Npts)
     e2 = np.zeros(Npts)
     a1 = np.zeros(Npts)
@@ -54,11 +53,12 @@ def simulate(args):
     phi3 = np.zeros(Npts)
     phi4 = np.zeros(Npts)
     phi5 = np.zeros(Npts)
-    phi6 = np.zeros(Npts)        
-    tf = open("cos,taupo=taue={0}_0.txt".format(taue),'w')
+    phi6 = np.zeros(Npts)
+           
+    tf = open("onlytaue={0}.txt".format(taue),'w')
     for i, time in enumerate(times):
-       rebound.integrate(time)
-       orbits = rebound.calculate_orbits()
+       sim.integrate(time)
+       orbits = sim.calculate_orbits()
        e1[i] = orbits[0].e
        e2[i] = orbits[1].e
        a1[i] = orbits[0].a
@@ -82,8 +82,8 @@ def simulate(args):
        evc1[i] = e1[i]*(np.cos(vp1[i]))
        evc2[i] = e2[i]*(np.cos(vp2[i]))
        tf.write("{0}\t{1}\t{2}\t{3}\t{4}\t{5}\t{6}\t{7}\t{8}\t{9}\t{10}\t{11}\t{12}\t{13}\t{14}\t{15}\t{16}\t{17}\t{18}\t{19}\n".format(times[i],e1[i],e2[i],a1[i],a2[i],Pratio[i],l1[i],l2[i],vp1[i],vp2[i],evs1[i],evs2[i],evc1[i],evc2[i],phi1[i],phi2[i],phi3[i],phi4[i], phi5[i], phi6[i]))   
+
     tf.close()
-    
     plt.figure()
     plt.plot(times, e1, color = 'black', linewidth = 2.5, linestyle ='solid')
     plt.plot(times, e2, color = 'purple', linewidth = 2.5, linestyle = 'dashed')
@@ -92,7 +92,7 @@ def simulate(args):
     plot(times, e1, color = 'black', linewidth = 1.5, linestyle = 'solid', label = 'Smaller exoplanet eccentricity')
     plot(times, e2,color = 'purple', linewidth = 1.5, linestyle = 'dashed', label = 'Larger exoplanet eccentricity')
     legend(loc = 'upper right')
-    egraph = plt.savefig('cos,taupo=taue={0}_0_eccentricity.pdf'.format(taues[1]))
+    plt.savefig('onlytaue={0}_eccentricity.pdf'.format(taue))
 
     plt.figure()
     plt.plot(times, Pratio, color = 'blue', linewidth = 3.0)
@@ -100,8 +100,8 @@ def simulate(args):
     plt.ylabel('Period Ratio', fontsize = 12)
     plot(times,Pratio,color = 'blue', linewidth = 2.0, linestyle = 'solid', label = 'Ratio of Planet Orbits')
     legend(loc = 'upper center')
-    plt.savefig('cos,taupo=taue={0}_0_periodratio.pdf'.format(taues[1]))
-
+    plt.savefig('onlytaue={0}_periodratio.pdf'.format(taue))
+        
 def ephi_sincos_graph(evc1, evs1, times):
     plt.figure()
     plt.scatter(evc1, evs1, s=8)
@@ -114,7 +114,7 @@ def ephi_sincos_graph(evc1, evs1, times):
     ax.spines['left'].set_position(('data',0))
     plt.xlabel('E*cos(varpi)', fontsize = 12)
     plt.ylabel('E*sin(varpi)', fontsize = 12)
-    evscgraph = plt.savefig('varpi_taupo=e={0}.pdf'.format(taues[1]))
+    evscgraph = plt.savefig('sin,varpi_taupo=e={0}.pdf'.format(taues[1]))
     return evscgraph
 
 def phi_graph(time, phi1, phi2, phi3, phi4, phi5, phi6):
@@ -133,7 +133,7 @@ def phi_graph(time, phi1, phi2, phi3, phi4, phi5, phi6):
     scatter(times[590:760], phi4[590:760], color = 'green', label = '5:4')
     scatter(times[740:860], phi5[740:860], color = 'pink', label = '6:5')
     scatter(times[840:1000], phi6[840:1000], color = 'purple', label = '7:6')
-    pgraph = plt.savefig('resonance_angles_taupo=e={0}.pdf'.format(taues[1]))
+    pgraph = plt.savefig('sin,resonance_angles_taupo=e={0}.pdf'.format(taues[1]))
     return pgraph
 
 def varpi_graph(vp1, vp2, times):
@@ -144,20 +144,21 @@ def varpi_graph(vp1, vp2, times):
     plt.ylabel('Pericentre Distance (m)', fontsize = 12)
     scatter(times,vp1, color = 'purple', label = 'smaller planet varpi')
     scatter(times, vp2, color = 'blue', label = 'larger planet varpi')
-    vpgraph = plt.savefig('pericentre_distance_taupo=e={0}.pdf'.format(taues[1]))
+    vpgraph = plt.savefig('sin,pericentre_distance_taupo=e={0}.pdf'.format(taues[1]))
     return vpgraph
 
-args = np.logspace(4,7,10)
+args = np.logspace(4,8,20)
 pool = InterruptiblePool(10)
-pool.map(simulate,args)
+pool.map(calc,args)
 
 filenames=[]
-f=open('cos,filnames,t[2]=0.txt','w')
+f=open('onlytaue,filenames.txt','w')
 for count in range(len(args)):
-   filenames.append('cos,taupo=taue={0}_0.txt'.format(args[count]))
+   filenames.append('onlytaue={0}.txt'.format(args[count]))
    print(filenames[count])
-   f.write(filenames[count])
+   f.write(str(filenames[count]))
    f.write('\t')
    f.write(str(args[count]))
    f.write('\n')
 f.close()
+
