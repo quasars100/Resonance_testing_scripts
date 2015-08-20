@@ -1,0 +1,13 @@
+The following is a description of what each script does in this repository folder.
+
+colorplot.py:
+This script compiles data from multiple data files (from multiple simulations of hypothetical planetary orbits) and plots them in a 3D plot, where the y axis represents time, the x represents force timescales, and the colour represents period ratios.  To access the data files, enter the name of the file containing the names of the data files on line 13.
+
+multiplesim.py:
+This script runs multiple simulations of planetary orbits at once involving a star test particle, a small planet, and a larger planet.  Each simulation varies from each other in terms of force timescales, such as migration, eccentricity damping, and precession.  These timescale values can be found on lines 32, 33, and 34 respectively, and can be changed on line 150.  Line 150 also decides the number of simulations run using this script, on the third value in parenthesis.  The data files and plots of each individual simulation's results are also outputted and stored by this script.
+
+singlesim.py:
+This script works almost exactly like multiplesim.py, only it runs single simulations at once instead of multiple simulations.  For each simulation, the timescales for migration, eccentricity damping, and precession can be changed on lines 20, 21, and 22 respectively.  To run different values for each simulation, this script will have to be run multiple times.
+
+plotdata.py :
+This script obtains data from text files containing data and plots them in individual graphs that display results.  These results include eccentricity, precession, axis position, orbital periods, longitude, and resonance angles.  Each graph corresponds to one simulation, and the data files are usually obtained from running singlesim.py or multiplesim.py above.
